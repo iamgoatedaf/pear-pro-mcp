@@ -1,0 +1,59 @@
+---
+title: Threat model
+description: "What Pear Pro MCP defends against, and what it deliberately leaves to you."
+---
+
+Pear Pro MCP sits between an autonomous agent and a real trading account. This page lays out the assumptions, the defenses, and the gaps you own.
+
+## Assumptions
+
+- **The agent is not fully trusted.** It may hallucinate tool calls, be prompt-injected, or be steered by untrusted content. The server is designed so a misbehaving agent cannot move funds by accident.
+- **The environment is trusted.** Whoever sets `PEAR_API_KEY` and `PEAR_READ_ONLY` is the human operator. Secrets in the environment are assumed safe from the agent.
+- **The Pear API is the source of truth** for balances, positions and execution.
+
+## Defenses in place
+
+<AccordionGroup>
+  <Accordion title="Read-only by default">
+    `PEAR_READ_ONLY=true` is the default. Every fund-moving tool refuses to run and explains how to enable trading. Only a human editing the environment can change this.
+  </Accordion>
+  <Accordion title="Per-call confirm gate">
+    Even with trading enabled, each mutating tool needs `confirm: true`. A single accidental call is a harmless no-op that prompts for explicit re-confirmation.
+  </Accordion>
+  <Accordion title="Bounded, validated inputs">
+    Zod schemas clamp leverage (1–100), slippage (0.1–10%), weights (0.0001–1.0), adjustment size (1–100%) and restrict execution/trigger/TP-SL types to fixed enums. Malformed input never becomes an HTTP request.
+  </Accordion>
+  <Accordion title="Secret isolation">
+    The API key and JWTs live only inside the server process. The agent exchanges tool inputs/outputs over stdio and never sees credentials.
+  </Accordion>
+  <Accordion title="Non-mutating previews">
+    Drift and rebalance previews use a plan endpoint that places no orders, so scheduled monitoring can't trade on its own unless you explicitly enable auto-rebalance.
+  </Accordion>
+  <Accordion title="No shell/string injection in trades">
+    Trade parameters are typed values sent as JSON, not interpolated into shell commands. The monitor's only shell-out (macOS notifications) escapes its arguments.
+  </Accordion>
+</AccordionGroup>
+
+## Gaps you own
+
+- **Position sizing.** There is no built-in notional cap or per-trade USD limit. If you enable trading, the agent can open any size your account allows. Constrain this through your own prompts/policies or by funding a dedicated sub-account.
+- **Key handling.** Storing `PEAR_API_KEY` in a client config or `.env` is your responsibility. Treat it like any production secret; prefer a `.env` the agent process can read but the model cannot.
+- **Auto-rebalance trust.** `PEAR_AUTO_REBALANCE=true` + `PEAR_READ_ONLY=false` trades with no human in the loop. Validate your drift threshold in alert-only mode first.
+- **Prompt injection at large.** The gates stop *accidental* trades, but a sufficiently steered agent with trading enabled can still place a confirmed trade. Keep untrusted content away from a trading-enabled agent.
+
+## Recommended hardening
+
+<Steps>
+  <Step title="Default to read-only">
+    Keep `PEAR_READ_ONLY=true` for any agent exposed to untrusted input.
+  </Step>
+  <Step title="Use a dedicated account">
+    Fund a separate Pear account / sub-account with only the capital you're willing to automate.
+  </Step>
+  <Step title="Scope the API key">
+    Use the narrowest key the Pear API offers, and rotate it if exposed.
+  </Step>
+  <Step title="Test the gates">
+    Confirm the read-only and confirm errors fire before trusting a setup with real funds.
+  </Step>
+</Steps>

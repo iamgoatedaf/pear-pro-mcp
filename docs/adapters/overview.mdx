@@ -1,0 +1,68 @@
+---
+title: Agent adapters
+description: "Connect Pear Pro MCP to any MCP-capable client over stdio."
+---
+
+Pear Pro MCP speaks the Model Context Protocol over **stdio**. Any MCP client launches it as a subprocess and talks to it on stdin/stdout. That means the integration is always the same three pieces:
+
+<Steps>
+  <Step title="Command">
+    `node` (or `npx tsx` in dev).
+  </Step>
+  <Step title="Args">
+    The absolute path to `dist/index.js` (after `npm run build`).
+  </Step>
+  <Step title="Env">
+    The variables from [Configuration](/get-started/configuration) — at minimum `PEAR_READ_ONLY`, plus auth for account/trading tools.
+  </Step>
+</Steps>
+
+## The canonical config
+
+Every adapter below is a variation on this:
+
+```json
+{
+  "mcpServers": {
+    "pear-pro": {
+      "command": "node",
+      "args": ["/absolute/path/to/pear-pro-mcp/dist/index.js"],
+      "env": {
+        "PEAR_API_BASE_URL": "https://hl-v2.pearprotocol.io",
+        "PEAR_CLIENT_ID": "APITRADER",
+        "PEAR_ADDRESS": "0x...",
+        "PEAR_API_KEY": "...",
+        "PEAR_READ_ONLY": "true"
+      }
+    }
+  }
+}
+```
+
+<Warning>
+Use an **absolute** path to `dist/index.js`. Relative paths break because the client launches the process from its own working directory, not your repo.
+</Warning>
+
+## Pick your client
+
+<CardGroup cols={2}>
+  <Card title="Cursor" icon="bolt" href="/adapters/cursor">
+    `~/.cursor/mcp.json` or per-project `.cursor/mcp.json`.
+  </Card>
+  <Card title="Claude Desktop" icon="comment" href="/adapters/claude-desktop">
+    `claude_desktop_config.json`.
+  </Card>
+  <Card title="Claude Code" icon="terminal" href="/adapters/claude-code">
+    `claude mcp add` CLI.
+  </Card>
+  <Card title="Codex" icon="code" href="/adapters/codex">
+    `~/.codex/config.toml`.
+  </Card>
+  <Card title="Generic MCP client" icon="plug" href="/adapters/generic">
+    Any client that can launch a stdio server.
+  </Card>
+</CardGroup>
+
+<Note>
+Keep secrets out of the agent. The `env` block is read by the launcher, not the model — the agent only ever sees tool inputs and outputs, never your `PEAR_API_KEY`. If you'd rather not put the key in a client config at all, set it in the repo's `.env` and omit it from the adapter `env`.
+</Note>

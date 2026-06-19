@@ -1,0 +1,86 @@
+---
+title: Pair analytics math
+description: "The exact formulas behind pear_pair_analytics."
+---
+
+`src/analytics.ts` implements the statistical-arbitrage helpers behind [`pear_pair_analytics`](/tools/local-quant). All inputs are aligned, equal-length price arrays ordered **oldest → newest**.
+
+## Log returns
+
+For a series $p$:
+
+$$
+r_i = \ln\!\left(\frac{p_i}{p_{i-1}}\right)
+$$
+
+Pairs where either price is ≤ 0 are skipped, so the return series can be slightly shorter than the price series.
+
+## Mean, std, covariance
+
+Sample statistics (default `sample = true`, dividing by $n-1$):
+
+$$
+\bar{x} = \frac{1}{n}\sum x_i, \quad
+s = \sqrt{\frac{\sum (x_i-\bar{x})^2}{n-1}}, \quad
+\operatorname{cov}(x,y) = \frac{\sum (x_i-\bar{x})(y_i-\bar{y})}{n-1}
+$$
+
+`std` returns `NaN` for fewer than 2 points; `mean` returns `NaN` for an empty array.
+
+## Correlation
+
+$$
+\rho = \frac{\operatorname{cov}(x,y)}{s_x \, s_y}
+$$
+
+`correlationOfReturns` applies this to the legs' **log returns**.
+
+## Beta (hedge ratio)
+
+OLS hedge ratio of A on B, computed on returns:
+
+$$
+\beta = \frac{\operatorname{cov}(r_A, r_B)}{\operatorname{var}(r_B)}
+$$
+
+This is the weighting that makes the pair roughly market-neutral — short $\beta$ units of B per unit of A.
+
+## Spread and z-score
+
+The spread is the price ratio series:
+
+$$
+\text{spread}_i = \frac{p^A_i}{p^B_i}
+$$
+
+(points where $p^B_i = 0$ are skipped). The z-score compares the latest spread to a trailing window of size $w$:
+
+$$
+z = \frac{\text{spread}_{\text{last}} - \mu_w}{\sigma_w}
+$$
+
+`rollingZScore` applies the same formula at every index using a sliding window (emitting `NaN` until the window fills).
+
+## Annualized volatility
+
+$$
+\sigma_{\text{ann}} = \sigma(r) \cdot \sqrt{\text{periodsPerYear}}
+$$
+
+`periodsPerYear` defaults to 365 (daily); use 8760 for hourly candles.
+
+## Signal
+
+```
+z ≥ 2   → "extended_long_spread"
+z ≤ -2  → "extended_short_spread"
+else    → "neutral"
+```
+
+$|z| \ge 2$ is the conventional mean-reversion entry band.
+
+## Defaults & guards
+
+- `window` defaults to 30, clamped to the spread length.
+- `rollingZScoreTail` returns the last 10 rolling z-scores.
+- The tool requires `pricesA.length === pricesB.length` (≥3 each) and rejects mismatches before computing.

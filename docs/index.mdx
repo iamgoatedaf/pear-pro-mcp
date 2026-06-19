@@ -1,0 +1,84 @@
+---
+title: Welcome
+description: "Pear Pro MCP exposes Pair & basket trading on Pear Protocol to any MCP-capable AI agent — market data, statistical-arbitrage analytics, guarded execution, and an auto-rebalance monitor."
+---
+
+Pear Pro MCP is a [Model Context Protocol](https://modelcontextprotocol.io) server that turns **Pear Protocol** into an execution + analytics layer any LLM agent (Claude Desktop, Cursor, Codex, your own stack) can drive — **pair and basket trading** on top of Lighter / Hyperliquid.
+
+This page helps you get started with Pear Pro MCP — a portable bridge between any MCP-capable AI agent and the Pear perpetuals engine.
+
+The server wraps the public [Pear Trading API](https://docs.pearprotocol.io) (`https://hl-v2.pearprotocol.io`) and adds three things an agent needs that the raw API does not provide on its own:
+
+<CardGroup cols={3}>
+  <Card title="Read-only by default" icon="lock">
+    Every fund-moving tool is blocked until you explicitly flip `PEAR_READ_ONLY=false` **and** pass `confirm: true` per call. Market data and analytics need no auth at all.
+  </Card>
+  <Card title="Zod-validated schemas" icon="shield-check">
+    Every tool input is validated with [Zod](https://zod.dev) before any HTTP request goes out — asset weights, leverage, slippage, execution types and TP/SL shapes are all bounded.
+  </Card>
+  <Card title="Local quant, offline" icon="chart-line">
+    Correlation, beta (hedge ratio), spread z-score, rolling z-score and annualized vol run entirely on price series you pass in — the same stats Pear's in-house "Agent Pair" reasons over.
+  </Card>
+</CardGroup>
+
+## Install
+
+The server is one Node package. Clone, install, build:
+
+```bash
+git clone https://github.com/iamgoatedaf/pear-pro-mcp ~/pear-pro-mcp
+cd ~/pear-pro-mcp
+npm install
+npm run build
+cp .env.example .env   # then fill in values
+```
+
+By default the server starts in **read-only mode**: the 11 market-data, account and rebalance-preview tools work, and no private key or API key is ever required to read public markets. If you want to actually trade or run the auto-rebalance monitor, see [Configuration](/get-started/configuration) and [Safety](/get-started/safety).
+
+## Run
+
+```bash
+npm start      # node dist/index.js  (production)
+npm run dev    # tsx src/index.ts    (no build step)
+```
+
+The process speaks MCP over **stdio** and exposes a tool catalog. Connect it from your agent using one of the [adapters](/adapters/overview) — there are drop-in setups for Cursor, Claude Desktop, Claude Code and Codex, plus a generic MCP client recipe.
+
+## Tool catalog at a glance
+
+| Group | Auth | Mutates funds | Tools |
+| --- | --- | --- | --- |
+| Market data | none | — | 5 |
+| Account | API key | — | 4 |
+| Rebalance preview | API key | — | 2 |
+| Trading | API key | gated | 7 |
+| Local quant | none | — | 1 |
+
+<Note>
+Trading tools only **exist as callable mutations** once `PEAR_READ_ONLY=false`. In read-only mode they are registered but refuse to execute and explain how to enable trading. See [Safety](/get-started/safety).
+</Note>
+
+## Where to go next
+
+<CardGroup cols={2}>
+  <Card title="Quickstart" icon="rocket" href="/get-started/quickstart">
+    From clone to first market scan and pair analysis in five minutes.
+  </Card>
+  <Card title="Tool reference" icon="wrench" href="/tools/overview">
+    All 21 tools — schemas, parameters, guards and sample calls.
+  </Card>
+  <Card title="Agent adapters" icon="plug" href="/adapters/overview">
+    Drop-in configs for Cursor, Claude, Codex and generic clients.
+  </Card>
+  <Card title="Safety internals" icon="shield" href="/security/threat-model">
+    How read-only mode, the confirm gate and input validation actually work.
+  </Card>
+</CardGroup>
+
+## Project status
+
+**Alpha (`0.1.0`).** The tool surface is stable enough to use, but expect schema-level changes between minor versions until `1.0`.
+
+<Warning>
+Live orders, rebalances and position closes on Pear are **irreversible** and move real funds. Read the [disclaimer](/security/disclaimer) before setting `PEAR_READ_ONLY=false`.
+</Warning>

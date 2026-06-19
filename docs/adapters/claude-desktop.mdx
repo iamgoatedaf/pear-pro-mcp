@@ -1,0 +1,53 @@
+---
+title: Claude Desktop
+description: "Add Pear Pro MCP to Claude Desktop."
+---
+
+Claude Desktop loads MCP servers from `claude_desktop_config.json`.
+
+## 1. Build the server
+
+```bash
+cd ~/pear-pro-mcp && npm install && npm run build
+```
+
+## 2. Find the config file
+
+| OS | Path |
+| --- | --- |
+| macOS | `~/Library/Application Support/Claude/claude_desktop_config.json` |
+| Windows | `%APPDATA%\Claude\claude_desktop_config.json` |
+
+You can also open it from **Claude → Settings → Developer → Edit Config**.
+
+## 3. Add the server
+
+```json
+{
+  "mcpServers": {
+    "pear-pro": {
+      "command": "node",
+      "args": ["/Users/you/pear-pro-mcp/dist/index.js"],
+      "env": {
+        "PEAR_API_BASE_URL": "https://hl-v2.pearprotocol.io",
+        "PEAR_CLIENT_ID": "APITRADER",
+        "PEAR_ADDRESS": "0x...",
+        "PEAR_API_KEY": "...",
+        "PEAR_READ_ONLY": "true"
+      }
+    }
+  }
+}
+```
+
+## 4. Restart Claude Desktop
+
+Fully quit and reopen Claude Desktop. The `pear-pro` tools appear under the MCP tools menu (the slider/plug icon) in a new chat.
+
+## 5. Verify
+
+> Use `pear_health` to check the Pear engine, then show me `pear_trade_ideas` with category `ai-picks`.
+
+<Note>
+Claude Desktop only re-reads the config on restart. After any change to the JSON or a rebuild, quit and reopen the app.
+</Note>

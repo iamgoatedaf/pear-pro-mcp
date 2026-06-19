@@ -1,0 +1,71 @@
+---
+title: Rebalance & drift math
+description: "How a non-mutating plan becomes a drift report and a recommendation."
+---
+
+`src/rebalance.ts` turns Pear's plan endpoint into the drift reports used by `pear_rebalance_check` and the [monitor](/internals/monitor). Nothing here places an order.
+
+## The plan
+
+`fetchRebalancePlan()` calls `POST /positions/{id}/rebalance/plan` with the target weights (or `{}` to use the position's stored targets). Each returned asset row has:
+
+```ts
+interface RebalanceAssetPlan {
+  coin: string;
+  side: "long" | "short";
+  currentWeight: number;   // 0..1
+  targetWeight: number;    // 0..1
+  currentValue: number;
+  targetValue: number;
+  deltaValue: number;      // signed USD to trade
+  currentSize: number;
+  newSize: number;
+  deltaSize: number;
+  skipped: boolean;
+  skipReason?: string;
+}
+```
+
+Plus a top-level `canExecute: boolean`.
+
+## Drift per asset
+
+For each asset:
+
+```
+drift = |currentWeight − targetWeight|
+```
+
+The action is derived from the signed `deltaValue`:
+
+| Condition | Action |
+| --- | --- |
+| `deltaValue < 0` | `trim` |
+| `deltaValue > 0` | `add` |
+| `deltaValue == 0` | `hold` |
+
+Weights and drift are reported as percentages (`× 100`), rounded to 2 decimal places.
+
+## The recommendation
+
+```
+maxDrift = max(drift over all assets)
+rebalanceRecommended = (maxDrift ≥ threshold) AND plan.canExecute
+```
+
+`threshold` defaults to `0.05` (5%). The "worst leg" (largest `driftPct`) drives the human-readable `summary`:
+
+> Rebalance recommended: max drift 7.2% (threshold 5%). Worst leg ETH 57.2%→50%.
+
+or, when within tolerance:
+
+> No rebalance needed: max drift 2.1% < threshold 5%.
+
+## Why `canExecute` matters
+
+Even if drift is large, `rebalanceRecommended` stays `false` when `plan.canExecute` is `false` — e.g. when there's nothing tradable or the position can't currently be rebalanced. This prevents the monitor from alerting (or auto-trading) on a plan that couldn't run anyway.
+
+## Where it's used
+
+- **`pear_rebalance_check`** returns the full `DriftReport` as JSON.
+- **The monitor** uses `rebalanceRecommended` to decide whether to alert or auto-rebalance, and `summary` for the notification text.

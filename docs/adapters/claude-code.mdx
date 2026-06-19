@@ -1,0 +1,46 @@
+---
+title: Claude Code
+description: "Add Pear Pro MCP to Claude Code via the CLI."
+---
+
+Claude Code manages MCP servers from the command line with `claude mcp`.
+
+## 1. Build the server
+
+```bash
+cd ~/pear-pro-mcp && npm install && npm run build
+```
+
+## 2. Add the server
+
+```bash
+claude mcp add pear-pro \
+  --env PEAR_API_BASE_URL=https://hl-v2.pearprotocol.io \
+  --env PEAR_CLIENT_ID=APITRADER \
+  --env PEAR_READ_ONLY=true \
+  -- node /Users/you/pear-pro-mcp/dist/index.js
+```
+
+Everything after `--` is the command Claude Code launches. Add `--env PEAR_ADDRESS=0x...` and `--env PEAR_API_KEY=...` for account/trading tools.
+
+## 3. Scope (optional)
+
+By default the server is added at user scope. Use `-s project` to share it with a repo via `.mcp.json`, or `-s local` for just the current project:
+
+```bash
+claude mcp add -s project pear-pro -- node /Users/you/pear-pro-mcp/dist/index.js
+```
+
+## 4. Verify
+
+```bash
+claude mcp list
+```
+
+You should see `pear-pro` listed. Then in a session:
+
+> Run `pear_get_markets` sorted by volume and summarize the top funding rates.
+
+<Tip>
+Remove or inspect the server with `claude mcp remove pear-pro` and `claude mcp get pear-pro`.
+</Tip>

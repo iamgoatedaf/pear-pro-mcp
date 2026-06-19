@@ -1,0 +1,70 @@
+---
+title: Tool reference
+description: "All 21 Pear Pro MCP tools — grouped by capability, with auth and guard requirements."
+---
+
+Pear Pro MCP registers **21 tools** in five groups. Each tool's input is a [Zod](https://zod.dev) schema validated before execution. This section documents every parameter, default and guard.
+
+## Groups
+
+<CardGroup cols={2}>
+  <Card title="Market data" icon="chart-column" href="/tools/market-data">
+    5 tools · no auth · read-only — health, markets, movers, ideas, address stats.
+  </Card>
+  <Card title="Account" icon="user" href="/tools/account">
+    4 tools · API key · read-only — positions, orders, history, agent wallet.
+  </Card>
+  <Card title="Rebalance preview" icon="scale-balanced" href="/tools/rebalance">
+    2 tools · API key · non-mutating — plan and drift check.
+  </Card>
+  <Card title="Trading" icon="triangle-exclamation" href="/tools/trading">
+    7 tools · API key · <b>guarded</b> — open, risk, adjust, rebalance, close, cancel.
+  </Card>
+  <Card title="Local quant" icon="function" href="/tools/local-quant">
+    1 tool · no API · offline — pair analytics.
+  </Card>
+</CardGroup>
+
+## Full index
+
+| Tool | Group | Auth | Guarded |
+| --- | --- | --- | --- |
+| `pear_health` | Market data | — | — |
+| `pear_get_markets` | Market data | — | — |
+| `pear_active_markets` | Market data | — | — |
+| `pear_trade_ideas` | Market data | — | — |
+| `pear_address_stats` | Market data | — | — |
+| `pear_list_positions` | Account | ✓ | — |
+| `pear_list_open_orders` | Account | ✓ | — |
+| `pear_trade_history` | Account | ✓ | — |
+| `pear_agent_wallet_status` | Account | ✓ | — |
+| `pear_rebalance_plan` | Rebalance | ✓ | — |
+| `pear_rebalance_check` | Rebalance | ✓ | — |
+| `pear_open_position` | Trading | ✓ | ✓ |
+| `pear_set_risk` | Trading | ✓ | ✓ |
+| `pear_adjust_position` | Trading | ✓ | ✓ |
+| `pear_rebalance_execute` | Trading | ✓ | ✓ |
+| `pear_close_position` | Trading | ✓ | ✓ |
+| `pear_close_all_positions` | Trading | ✓ | ✓ |
+| `pear_cancel_order` | Trading | ✓ | ✓ |
+| `pear_pair_analytics` | Local quant | — | — |
+
+## Result envelope
+
+Every tool returns a single MCP `text` content block:
+
+<CodeGroup>
+```json Success
+{ "content": [{ "type": "text", "text": "<JSON or string result>" }] }
+```
+
+```json Error
+{ "content": [{ "type": "text", "text": "<message>" }], "isError": true }
+```
+</CodeGroup>
+
+API errors are formatted as `Pear API error <status> on <endpoint>: <body>`. Guard rejections and validation failures are returned the same way with `isError: true`.
+
+<Note>
+"Guarded" tools require `PEAR_READ_ONLY=false` **and** `confirm: true` on the call. See [Safety](/get-started/safety).
+</Note>

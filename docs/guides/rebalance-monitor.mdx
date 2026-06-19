@@ -1,0 +1,65 @@
+---
+title: Auto-rebalance monitor
+description: "Run a background process that watches weight drift and either alerts you or rebalances automatically."
+---
+
+An MCP server only acts when an agent calls a tool. Scheduled monitoring therefore runs as a **separate background process**: `npm run monitor`.
+
+## What it does each tick
+
+<Steps>
+  <Step title="List positions">
+    Pulls your open positions (or one, if `PEAR_POSITION_ID` is set).
+  </Step>
+  <Step title="Compute drift (non-mutating)">
+    Runs the non-mutating rebalance plan for each and measures how far every leg's weight has drifted from target.
+  </Step>
+  <Step title="Decide">
+    If max drift ≥ `PEAR_DRIFT_THRESHOLD`, it acts according to your mode (below). Otherwise it logs `OK`.
+  </Step>
+</Steps>
+
+## Run it
+
+```bash
+npm run monitor
+# [2026-...] Pear rebalance monitor started | every 300s | drift>=5% | ALERT-ONLY | all positions
+```
+
+It requires auth (`PEAR_API_KEY` + `PEAR_ADDRESS`) because positions are user-specific.
+
+## Two modes
+
+<Tabs>
+  <Tab title="Alert-only (default)">
+    When drift breaches the threshold, you get a native macOS notification:
+
+    > Pear: rebalance recommended — Position abc123…7d9 drift 7.2%. Say "rebalance abc123…7d9" in chat to execute.
+
+    You stay in control: approve by telling your agent `rebalance <positionId>` → it calls `pear_rebalance_execute`. This is the recommended default.
+  </Tab>
+  <Tab title="Auto-rebalance (opt-in)">
+    Set **both** `PEAR_AUTO_REBALANCE=true` and `PEAR_READ_ONLY=false`. Now the monitor calls the rebalance endpoint itself when drift breaches the threshold, and notifies you afterward.
+
+    <Warning>
+    This moves funds with no human in the loop. If `PEAR_READ_ONLY=true`, the monitor stays alert-only even with `PEAR_AUTO_REBALANCE=true`, and logs a note explaining why.
+    </Warning>
+  </Tab>
+</Tabs>
+
+## Tuning
+
+| Variable | Default | Effect |
+| --- | --- | --- |
+| `PEAR_POLL_INTERVAL_MS` | `300000` | Tick interval (min 5000 = 5s) |
+| `PEAR_DRIFT_THRESHOLD` | `0.05` | Drift fraction that triggers action (5%) |
+| `PEAR_POSITION_ID` | — | Watch one position; empty = all |
+| `PEAR_AUTO_REBALANCE` | `false` | Auto-execute (requires `PEAR_READ_ONLY=false`) |
+
+## Notes
+
+- Notifications use macOS `osascript`. On other platforms the notification is skipped and the event is logged to the console instead.
+- The monitor uses the same non-mutating plan endpoint as `pear_rebalance_check`, so polling never places an order on its own — only the auto-rebalance branch does, and only when you've explicitly enabled it.
+- Run it under a process manager (`pm2`, `launchd`, `systemd`) to keep it alive across reboots.
+
+The drift math is documented in [Internals → Rebalance & drift math](/internals/rebalance-math).

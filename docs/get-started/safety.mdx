@@ -1,0 +1,80 @@
+---
+title: Safety & read-only mode
+description: "The two-layer guard that stands between an agent and your funds."
+---
+
+Pear Pro MCP assumes an agent can and will call any tool it's offered. So fund-moving tools are protected by **two independent layers** that both have to be cleared before money moves.
+
+## Layer 1 — the read-only switch
+
+`PEAR_READ_ONLY` defaults to `true`. While it's on, every order-placing or position-mutating tool returns an error instead of executing:
+
+```
+Server is in READ-ONLY mode (PEAR_READ_ONLY=true). Refusing to place/modify
+orders. Set PEAR_READ_ONLY=false to enable trading.
+```
+
+This is a server-side gate. The agent cannot override it — only a human editing the environment can. Market-data, account-read, rebalance-preview and local-quant tools are unaffected.
+
+## Layer 2 — the per-call confirm gate
+
+Even with `PEAR_READ_ONLY=false`, every mutating tool requires an explicit `confirm: true` argument. Without it you get:
+
+```
+This action moves real funds. Re-call with confirm=true to execute.
+```
+
+This forces a deliberate two-step: the agent (or you) must consciously re-issue the call with confirmation. It turns "the model hallucinated a trade" into a harmless no-op the first time.
+
+<Note>
+Both checks live in a single `guardWrite(confirm)` helper that runs **before** any HTTP request. The order is: read-only first, then confirm. A blocked call never reaches the Pear API.
+</Note>
+
+## Which tools are guarded
+
+| Guarded (needs `!readOnly` + `confirm: true`) | Always allowed |
+| --- | --- |
+| `pear_open_position` | `pear_health` |
+| `pear_set_risk` | `pear_get_markets` |
+| `pear_adjust_position` | `pear_active_markets` |
+| `pear_rebalance_execute` | `pear_trade_ideas` |
+| `pear_close_position` | `pear_address_stats` |
+| `pear_close_all_positions` | `pear_list_positions` |
+| `pear_cancel_order` | `pear_list_open_orders` |
+| | `pear_trade_history` |
+| | `pear_agent_wallet_status` |
+| | `pear_rebalance_plan` |
+| | `pear_rebalance_check` |
+| | `pear_pair_analytics` |
+
+<Tip>
+`pear_rebalance_plan` and `pear_rebalance_check` hit a **non-mutating** plan endpoint, so they're safe to call on a schedule. The only way to actually rebalance is `pear_rebalance_execute`, which is guarded.
+</Tip>
+
+## Input validation as a third line
+
+Beyond the two gates, every tool input is a [Zod](https://zod.dev) schema validated before execution. This bounds what a confirmed trade can even ask for:
+
+- `leverage`: 1–100
+- `slippage`: 0.001–0.1 (0.1%–10%)
+- asset `weight`: 0.0001–1.0
+- `adjustmentSize`: 1–100 (%)
+- `executionType` / `triggerType` / TP-SL `type`: fixed enums only
+
+Malformed or out-of-range input is rejected with a schema error — it never becomes an HTTP request.
+
+## Recommended posture
+
+<Steps>
+  <Step title="Demos and untrusted agents">
+    Keep `PEAR_READ_ONLY=true`. The agent can read everything and analyze pairs but cannot move funds.
+  </Step>
+  <Step title="Supervised trading">
+    Set `PEAR_READ_ONLY=false` but keep the auto-rebalance monitor in **alert-only** mode. You approve each rebalance by telling the agent `rebalance <id>`.
+  </Step>
+  <Step title="Hands-off automation">
+    Only enable `PEAR_AUTO_REBALANCE=true` with `PEAR_READ_ONLY=false` once you trust the drift threshold and have tested alert-only behavior on real positions.
+  </Step>
+</Steps>
+
+For the full attacker's-eye view, see [Threat model](/security/threat-model). Before flipping the switch, read the [Disclaimer](/security/disclaimer).

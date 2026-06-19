@@ -1,0 +1,71 @@
+---
+title: Quickstart
+description: "From clone to your first market scan and pair analysis in five minutes — no API key, no funds."
+---
+
+This walkthrough uses only **read-only** tools, so you need no account, no API key and no funds. By the end your agent will have browsed Pear markets and analyzed a pair with statistical-arbitrage math.
+
+## 1. Install and build
+
+```bash
+git clone https://github.com/iamgoatedaf/pear-pro-mcp ~/pear-pro-mcp
+cd ~/pear-pro-mcp && npm install && npm run build && cp .env.example .env
+```
+
+Defaults are fine — `PEAR_READ_ONLY=true` and no key means market-data and analytics tools work immediately.
+
+## 2. Wire it into your agent
+
+Pick your client and drop in the config. For **Cursor**, add to `~/.cursor/mcp.json`:
+
+```json
+{
+  "mcpServers": {
+    "pear-pro": {
+      "command": "node",
+      "args": ["/absolute/path/to/pear-pro-mcp/dist/index.js"],
+      "env": { "PEAR_READ_ONLY": "true" }
+    }
+  }
+}
+```
+
+Full per-client instructions: [Cursor](/adapters/cursor), [Claude Desktop](/adapters/claude-desktop), [Claude Code](/adapters/claude-code), [Codex](/adapters/codex).
+
+## 3. Check the engine is live
+
+Ask your agent:
+
+> Call `pear_health` and tell me if the Pear engine is up.
+
+This hits `GET /health` with no auth and confirms the server can reach Pear.
+
+## 4. Scan the markets
+
+> Use `pear_get_markets` sorted by 24h volume, top 10. Which pairs have the largest net funding?
+
+The agent gets open interest, volume, long/short ratio, weighted ratio and net funding for each pair, then reasons over them. Try `pear_active_markets` for movers and `pear_trade_ideas` with `category: "ai-picks"` for Pear's statistical-arbitrage suggestions.
+
+## 5. Analyze a pair offline
+
+The most powerful read-only tool needs no API at all. Feed it two aligned price series (oldest → newest):
+
+> Run `pear_pair_analytics` on these ETH and BTC daily closes and tell me if the spread is extended.
+>
+> pricesA (ETH): [3500, 3520, 3480, 3600, 3650, 3700, 3680, 3720, 3800, 3900]
+> pricesB (BTC): [65000, 65200, 64800, 66000, 66500, 67000, 66800, 67200, 68000, 69000]
+
+You get back correlation, beta (hedge ratio), spread mean/std, the latest **z-score**, a rolling z-score tail, annualized vol per leg, and a `signal` (`extended_long_spread` / `extended_short_spread` / `neutral`). A `|z| ≥ 2` reading is a classic mean-reversion entry. Details in the [pair analytics guide](/guides/pair-analytics).
+
+## You're done
+
+You've run the read-only loop end to end. Next:
+
+<CardGroup cols={2}>
+  <Card title="Enable trading (carefully)" icon="triangle-exclamation" href="/guides/guarded-trade">
+    Walk through a guarded live order with the read-only + confirm gate.
+  </Card>
+  <Card title="Auto-rebalance monitor" icon="timer" href="/guides/rebalance-monitor">
+    Run a background process that watches drift and alerts you.
+  </Card>
+</CardGroup>

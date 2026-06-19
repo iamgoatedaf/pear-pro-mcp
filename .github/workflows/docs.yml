@@ -1,0 +1,35 @@
+name: Docs
+
+# Mintlify deploys the site automatically via its GitHub App on every push to
+# the default branch (see docs/README.md). This workflow just validates the docs
+# so broken links / bad config fail CI before they ever reach the live site.
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+  pull_request:
+    paths:
+      - "docs/**"
+      - ".github/workflows/docs.yml"
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: docs
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "20"
+
+      - name: Install Mintlify CLI
+        run: npm install -g mint
+
+      - name: Check for broken links
+        run: mint broken-links

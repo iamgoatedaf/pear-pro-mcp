@@ -1,0 +1,54 @@
+---
+title: Account tools
+description: "Four authenticated, read-only tools for your positions, orders and history."
+---
+
+These tools require auth (`PEAR_API_KEY` + `PEAR_ADDRESS`, or `PEAR_ACCESS_TOKEN`). They read your account state and never move funds. The server handles login and JWT refresh automatically — see [Internals → Auth](/internals/auth).
+
+## `pear_list_positions`
+
+Processed open pair/basket positions: entry/mark ratio, position value, margin, unrealized PnL, per-leg detail and TP/SL.
+
+**Input:** none.
+
+`GET /positions` (authenticated)
+
+> List my open positions with their unrealized PnL.
+
+---
+
+## `pear_list_open_orders`
+
+Open orders — market, trigger, TWAP, TP/SL and ladder.
+
+**Input:** none.
+
+`GET /orders/open` (authenticated)
+
+---
+
+## `pear_trade_history`
+
+Trade history with fees, PnL and asset-level data.
+
+<ParamField path="limit" type="integer">Max rows (positive).</ParamField>
+<ParamField path="startDate" type="string">ISO date lower bound.</ParamField>
+<ParamField path="endDate" type="string">ISO date upper bound.</ParamField>
+
+`GET /trade-history` (authenticated)
+
+> `pear_trade_history` for the last 30 days, limit 100. Summarize realized PnL and fees.
+
+---
+
+## `pear_agent_wallet_status`
+
+Check whether an agent wallet exists for the authenticated user and its status.
+
+**Input:** none.
+
+`GET /agentWallet` (authenticated)
+
+<Note>
+All four return the result as JSON in the tool's `text` block. A `401` triggers one automatic re-auth + retry; if it still fails you'll get `Pear API error 401 …`, which usually means missing or invalid `PEAR_API_KEY` / `PEAR_ADDRESS`.
+</Note>

@@ -1,0 +1,58 @@
+---
+title: Background monitor
+description: "How the standalone rebalance monitor process works."
+---
+
+`src/monitor.ts` is a **separate process** from the MCP server. An MCP server only acts on tool calls, so anything scheduled — like watching positions for drift — runs here. Start it with `npm run monitor` (or `npm run monitor:dev`).
+
+## Options
+
+Loaded from the environment by `loadMonitorOptions()`:
+
+| Variable | Default | Validation |
+| --- | --- | --- |
+| `PEAR_POLL_INTERVAL_MS` | `300000` | Must be ≥ 5000, else falls back to default |
+| `PEAR_DRIFT_THRESHOLD` | `0.05` | Numeric, else falls back |
+| `PEAR_POSITION_ID` | — | Empty = watch all positions |
+| `PEAR_AUTO_REBALANCE` | `false` | `1/true/yes/on` = true |
+
+## The tick loop
+
+<Steps>
+  <Step title="Resolve positions">
+    If `PEAR_POSITION_ID` is set, watch just that. Otherwise `GET /positions` and collect every `positionId`.
+  </Step>
+  <Step title="Plan + analyze">
+    For each position, `fetchRebalancePlan()` then `analyzeDrift(plan, threshold)` (see [Rebalance math](/internals/rebalance-math)). Plan failures are logged per-position and skipped.
+  </Step>
+  <Step title="Act">
+    If not recommended → log `OK`. If recommended → alert or auto-rebalance.
+  </Step>
+</Steps>
+
+The first tick runs immediately; subsequent ticks run on `setInterval(intervalMs)`.
+
+## Alert vs auto
+
+```
+mode = (autoRebalance && !readOnly) ? "AUTO-REBALANCE" : "ALERT-ONLY"
+```
+
+- **Alert-only** — fires a notification and waits for you to approve via the agent (`rebalance <id>` → `pear_rebalance_execute`).
+- **Auto-rebalance** — calls `POST /positions/{id}/rebalance` directly, then notifies of success or failure.
+
+<Warning>
+If `PEAR_AUTO_REBALANCE=true` but `PEAR_READ_ONLY=true`, the monitor logs a note and **stays alert-only**. The read-only switch wins. Auto-rebalancing requires `PEAR_READ_ONLY=false`.
+</Warning>
+
+## Notifications
+
+`notify()` shells out to macOS `osascript` to display a native notification with the "Glass" sound. Arguments are escaped to avoid AppleScript injection. On non-macOS systems (or if `osascript` fails) the event is logged to the console instead — the monitor keeps running.
+
+## Auth & errors
+
+The monitor needs auth (`PEAR_API_KEY` + `PEAR_ADDRESS`) because positions are user-specific. A `401` during a tick logs a clear hint to set those variables; other errors are logged and the loop continues to the next tick.
+
+<Tip>
+Run the monitor under a process manager (`pm2`, `launchd`, `systemd`) so it survives reboots and restarts on crash.
+</Tip>

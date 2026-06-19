@@ -1,0 +1,75 @@
+---
+title: Market data tools
+description: "Five read-only tools that need no auth and never touch funds."
+---
+
+These tools call public Pear endpoints with no `Authorization` header. They're safe to expose to any agent.
+
+## `pear_health`
+
+Check Pear API availability for the configured engine.
+
+**Input:** none.
+
+`GET /health`
+
+> Call `pear_health`.
+
+---
+
+## `pear_get_markets`
+
+List tradable pair/basket markets with open interest, 24h volume, long/short ratio, weighted ratio and net funding. Supports filtering and sorting.
+
+<ParamField path="searchText" type="string">Free-text market search.</ParamField>
+<ParamField path="engine" type="string">Filter by engine type.</ParamField>
+<ParamField path="minVolume" type="number">Minimum 24h volume.</ParamField>
+<ParamField path="netFunding" type="string">Filter by positive/negative funding.</ParamField>
+<ParamField path="sort" type="string">e.g. `"volume:desc"`.</ParamField>
+<ParamField path="page" type="integer">Page number (≥1).</ParamField>
+<ParamField path="pageSize" type="integer">Items per page (1–100).</ParamField>
+
+`GET /markets` (query params passed through)
+
+> `pear_get_markets` with `sort: "volume:desc"`, `pageSize: 10`.
+
+---
+
+## `pear_active_markets`
+
+Actively traded pairs plus top gainers, top losers, highlighted pairs and the user watchlist.
+
+**Input:** none.
+
+`GET /markets/active`
+
+---
+
+## `pear_trade_ideas`
+
+Pair/basket trade ideas from three sources.
+
+<ParamField path="category" type="enum">
+  One of `active` (platform activity), `watchlist` (user), `ai-picks` (Pear's statistical-arbitrage engine). Omit to return all. The server filters the returned `baskets` array by category client-side.
+</ParamField>
+
+`GET /markets/v2`
+
+> `pear_trade_ideas` with `category: "ai-picks"`.
+
+---
+
+## `pear_address_stats`
+
+Public stats: external fee paid, builder fee paid and total volume for one or more addresses.
+
+<ParamField path="addresses" type="string[]" required>
+  Wallet addresses (at least one). Joined with commas into the query.
+</ParamField>
+<ParamField path="startFrom" type="string">
+  ISO timestamp filter (inclusive).
+</ParamField>
+
+`GET /public-stats/address?addresses=0x..,0x..`
+
+> `pear_address_stats` for `["0xabc...", "0xdef..."]` since `2026-01-01T00:00:00Z`.

@@ -1,0 +1,57 @@
+---
+title: Generic MCP client
+description: "Wire Pear Pro MCP into any client that can launch a stdio MCP server."
+---
+
+Any MCP client — including your own code built on the [MCP SDK](https://modelcontextprotocol.io) — can launch Pear Pro MCP. There are only two requirements:
+
+1. Launch `node /absolute/path/to/pear-pro-mcp/dist/index.js`.
+2. Speak MCP over the process's **stdin/stdout** (stdio transport).
+
+`stderr` is used only for the readiness log line and is safe to ignore or capture.
+
+## Minimal client (TypeScript SDK)
+
+```ts
+import { Client } from "@modelcontextprotocol/sdk/client/index.js";
+import { StdioClientTransport } from "@modelcontextprotocol/sdk/client/stdio.js";
+
+const transport = new StdioClientTransport({
+  command: "node",
+  args: ["/Users/you/pear-pro-mcp/dist/index.js"],
+  env: {
+    PEAR_API_BASE_URL: "https://hl-v2.pearprotocol.io",
+    PEAR_READ_ONLY: "true",
+  },
+});
+
+const client = new Client({ name: "my-app", version: "1.0.0" });
+await client.connect(transport);
+
+// Discover tools
+const { tools } = await client.listTools();
+console.log(tools.map((t) => t.name));
+
+// Call one
+const res = await client.callTool({ name: "pear_health", arguments: {} });
+console.log(res.content);
+```
+
+## Tool output contract
+
+Every tool returns MCP `content` with a single `text` block:
+
+- **Success**: `text` is the JSON-stringified result (or a plain string for `pear_health`).
+- **Failure**: `text` is a human-readable error message and `isError: true` is set.
+
+API failures are surfaced as:
+
+```
+Pear API error <status> on <endpoint>: <body>
+```
+
+so your client can branch on `isError` and parse the status if needed.
+
+## Environment
+
+The server reads the same variables described in [Configuration](/get-started/configuration), whether they come from the launcher's `env` or a `.env` file in the repo. Nothing else is required for read-only use.
