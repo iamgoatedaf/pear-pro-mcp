@@ -1,20 +1,9 @@
 #!/usr/bin/env node
-import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
-import { loadConfig } from "./config.js";
-import { PearClient } from "./client.js";
-import { registerTools } from "./tools.js";
+import { createMcpServer } from "./server.js";
 
 async function main(): Promise<void> {
-  const cfg = loadConfig();
-  const client = new PearClient(cfg);
-
-  const server = new McpServer({
-    name: "pear-pro-mcp",
-    version: "0.1.0",
-  });
-
-  registerTools(server, client, cfg);
+  const { server, cfg } = createMcpServer();
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
