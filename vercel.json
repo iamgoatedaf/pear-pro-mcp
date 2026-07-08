@@ -1,0 +1,13 @@
+{
+  "version": 2,
+  "builds": [
+    { "src": "public/**", "use": "@vercel/static" },
+    { "src": "api/mcp.cjs", "use": "@vercel/node" }
+  ],
+  "routes": [
+    { "src": "/mcp", "dest": "/api/mcp.cjs" },
+    { "src": "/api/mcp", "dest": "/api/mcp.cjs" },
+    { "src": "/", "dest": "/public/index.html" },
+    { "src": "/(.*)", "dest": "/public/$1" }
+  ]
+}

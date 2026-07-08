@@ -10,3 +10,4 @@ dist/
 .cursor/
 .vscode/
 .idea/
+.vercel

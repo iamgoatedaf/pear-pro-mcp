@@ -11,6 +11,7 @@
   ],
   "scripts": {
     "build": "tsc",
+    "vercel-build": "tsc",
     "dev": "tsx src/index.ts",
     "start": "node dist/index.js",
     "monitor": "node dist/monitor.js",
@@ -37,6 +38,7 @@
   },
   "devDependencies": {
     "@types/node": "^22.7.4",
+    "@vercel/node": "^5.8.22",
     "tsx": "^4.19.1",
     "typescript": "^5.6.2"
   }

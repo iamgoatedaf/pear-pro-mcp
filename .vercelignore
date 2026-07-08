@@ -1,0 +1,5 @@
+src/index.ts
+src/monitor.ts
+.env
+.env.*
+!.env.example
