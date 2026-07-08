@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Pear Pro MCP — Pair & Basket Trading for AI Agents</title>
+  <meta name="description" content="Model Context Protocol server for Pear Protocol — pair & basket trading on Lighter / Hyperliquid." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg: #0a0f0d;
+      --surface: #111916;
+      --surface-2: #1a2420;
+      --border: #2a3d35;
+      --text: #e8f0ec;
+      --muted: #8aa399;
+      --accent: #4ade80;
+      --accent-dim: #22c55e33;
+      --pear: #fbbf24;
+    }
+
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+
+    body {
+      font-family: 'Inter', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      min-height: 100vh;
+    }
+
+    .glow {
+      position: fixed;
+      top: -200px;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 800px;
+      height: 600px;
+      background: radial-gradient(ellipse, #22c55e18 0%, transparent 70%);
+      pointer-events: none;
+      z-index: 0;
+    }
+
+    .container {
+      position: relative;
+      z-index: 1;
+      max-width: 860px;
+      margin: 0 auto;
+      padding: 3rem 1.5rem 5rem;
+    }
+
+    .badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.5rem;
+      background: var(--accent-dim);
+      border: 1px solid #22c55e44;
+      color: var(--accent);
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.05em;
+      text-transform: uppercase;
+      padding: 0.35rem 0.85rem;
+      border-radius: 999px;
+      margin-bottom: 1.5rem;
+    }
+
+    h1 {
+      font-size: clamp(2rem, 5vw, 3rem);
+      font-weight: 700;
+      line-height: 1.15;
+      letter-spacing: -0.03em;
+      margin-bottom: 1rem;
+    }
+
+    h1 span { color: var(--pear); }
+
+    .subtitle {
+      font-size: 1.125rem;
+      color: var(--muted);
+      max-width: 600px;
+      margin-bottom: 2.5rem;
+    }
+
+    .endpoint-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.25rem 1.5rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .endpoint-card label {
+      display: block;
+      font-size: 0.75rem;
+      font-weight: 600;
+      text-transform: uppercase;
+      letter-spacing: 0.06em;
+      color: var(--muted);
+      margin-bottom: 0.5rem;
+    }
+
+    .endpoint-row {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+    }
+
+    code.endpoint {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.9rem;
+      color: var(--accent);
+      background: var(--surface-2);
+      padding: 0.5rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      flex: 1;
+      min-width: 0;
+      word-break: break-all;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      padding: 0.55rem 1rem;
+      border-radius: 8px;
+      font-size: 0.875rem;
+      font-weight: 500;
+      text-decoration: none;
+      cursor: pointer;
+      border: none;
+      transition: opacity 0.15s;
+    }
+
+    .btn:hover { opacity: 0.85; }
+
+    .btn-copy {
+      background: var(--surface-2);
+      color: var(--text);
+      border: 1px solid var(--border);
+    }
+
+    .btn-primary {
+      background: var(--accent);
+      color: #0a0f0d;
+      font-weight: 600;
+    }
+
+    .links {
+      display: flex;
+      gap: 0.75rem;
+      flex-wrap: wrap;
+      margin-bottom: 3rem;
+    }
+
+    h2 {
+      font-size: 1.1rem;
+      font-weight: 600;
+      margin-bottom: 1rem;
+      color: var(--text);
+    }
+
+    .tools-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(240px, 1fr));
+      gap: 0.75rem;
+      margin-bottom: 2.5rem;
+    }
+
+    .tool {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1rem 1.1rem;
+    }
+
+    .tool h3 {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.8rem;
+      color: var(--accent);
+      margin-bottom: 0.35rem;
+    }
+
+    .tool p {
+      font-size: 0.85rem;
+      color: var(--muted);
+    }
+
+    .section { margin-bottom: 2.5rem; }
+
+    .config-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      overflow: hidden;
+    }
+
+    pre {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 0.78rem;
+      line-height: 1.55;
+      padding: 1.25rem 1.5rem;
+      overflow-x: auto;
+      color: #c9d8d0;
+    }
+
+    .tag {
+      display: inline-block;
+      font-size: 0.7rem;
+      font-weight: 600;
+      padding: 0.15rem 0.5rem;
+      border-radius: 4px;
+      margin-bottom: 0.75rem;
+    }
+
+    .tag-free { background: #22c55e22; color: var(--accent); }
+    .tag-auth { background: #fbbf2422; color: var(--pear); }
+
+    footer {
+      border-top: 1px solid var(--border);
+      padding-top: 2rem;
+      color: var(--muted);
+      font-size: 0.85rem;
+    }
+
+    footer a { color: var(--accent); text-decoration: none; }
+    footer a:hover { text-decoration: underline; }
+  </style>
+</head>
+<body>
+  <div class="glow"></div>
+  <div class="container">
+    <div class="badge">Model Context Protocol</div>
+
+    <h1>Pear Pro <span>MCP</span></h1>
+    <p class="subtitle">
+      Turn Pear Protocol into an execution &amp; analytics layer any LLM agent can drive —
+      pair and basket trading on Lighter / Hyperliquid.
+    </p>
+
+    <div class="endpoint-card">
+      <label>MCP Endpoint (Streamable HTTP)</label>
+      <div class="endpoint-row">
+        <code class="endpoint" id="endpoint-url">/mcp</code>
+        <button class="btn btn-copy" onclick="copyEndpoint()">Copy</button>
+      </div>
+    </div>
+
+    <div class="links">
+      <a class="btn btn-primary" href="https://github.com/iamgoatedaf/pear-pro-mcp" target="_blank" rel="noopener">GitHub</a>
+      <a class="btn btn-copy" href="https://docs.pearprotocol.io" target="_blank" rel="noopener">Pear API Docs</a>
+      <a class="btn btn-copy" href="https://modelcontextprotocol.io" target="_blank" rel="noopener">MCP Spec</a>
+    </div>
+
+    <div class="section">
+      <h2>Market Data Tools <span class="tag tag-free">No auth</span></h2>
+      <div class="tools-grid">
+        <div class="tool"><h3>pear_health</h3><p>Engine health check</p></div>
+        <div class="tool"><h3>pear_get_markets</h3><p>Markets with OI, volume, ratio, funding</p></div>
+        <div class="tool"><h3>pear_active_markets</h3><p>Active pairs, gainers, losers, watchlist</p></div>
+        <div class="tool"><h3>pear_trade_ideas</h3><p>Active / watchlist / AI-picks baskets</p></div>
+        <div class="tool"><h3>pear_pair_analytics</h3><p>Correlation, beta, z-score, vol (offline)</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Trading Tools <span class="tag tag-auth">Auth required</span></h2>
+      <div class="tools-grid">
+        <div class="tool"><h3>pear_list_positions</h3><p>Open positions</p></div>
+        <div class="tool"><h3>pear_open_position</h3><p>Pair/basket MARKET, TWAP, LADDER</p></div>
+        <div class="tool"><h3>pear_rebalance_check</h3><p>Drift analysis &amp; recommendation</p></div>
+        <div class="tool"><h3>pear_close_position</h3><p>Close a position</p></div>
+      </div>
+    </div>
+
+    <div class="section">
+      <h2>Connect in Cursor</h2>
+      <div class="config-block">
+        <pre id="cursor-config">{
+  "mcpServers": {
+    "pear-pro": {
+      "url": "<span id="config-url">/mcp</span>"
+    }
+  }
+}</pre>
+      </div>
+    </div>
+
+    <footer>
+      Built against the <a href="https://docs.pearprotocol.io" target="_blank" rel="noopener">Pear Trading API</a>.
+      Deployed in read-only mode — trading tools require your own API key.
+    </footer>
+  </div>
+
+  <script>
+    const origin = window.location.origin;
+    const endpoint = origin + '/mcp';
+    document.getElementById('endpoint-url').textContent = endpoint;
+    document.getElementById('config-url').textContent = endpoint;
+
+    function copyEndpoint() {
+      navigator.clipboard.writeText(endpoint).then(() => {
+        const btn = document.querySelector('.btn-copy');
+        btn.textContent = 'Copied!';
+        setTimeout(() => { btn.textContent = 'Copy'; }, 2000);
+      });
+    }
+  </script>
+</body>
+</html>
